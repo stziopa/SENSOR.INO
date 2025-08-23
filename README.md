@@ -1,0 +1,1 @@
+***SENSOR.INO*** is an Arduino workshop for electronic music producers, musicians but also for media artists, makers and enthusiasts who want to explore the possibilities of environmental sensors in their creative workflow.
