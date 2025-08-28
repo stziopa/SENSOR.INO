@@ -1,0 +1,87 @@
+/*
+2025-08-24 SENSOR.INO WORKSHOP VKB
+
+MICROGRANNY DEMO 
+This example combines together the Light Sensor (LDR) and the Temperature and Humidity Sensor.
+
+Below the list of commands assignable to MG:
+MIDI CC list:
+...
+64    sustain
+...
+102   sampleRate
+103   crush
+104   attack
+105   release
+106   grain size
+107   shiftSpeed
+108   start
+109   end
+...
+127   randomize
+
+*/
+
+#include <MIDI.h>
+#include <Wire.h>
+#include <ArtronShop_SHT3x.h>
+
+ArtronShop_SHT3x sht3x(0x44, &Wire); // ADDR: 0 => 0x44, ADDR: 1 => 0x45
+
+//Pin definitions
+int LDRPin = A0;
+int LDRValue;
+
+//MIDI stuff
+MIDI_CREATE_DEFAULT_INSTANCE();
+//default Note and Velocity if no sensor connected
+byte note = 60;
+byte velocity = 100;
+
+byte sampleRate = 64; //102
+byte grainSize = 64; //106
+byte shiftSpeed = 64; //107
+
+
+// TIMING STUFF
+//note Duration in milliseconds
+int noteDuration = 50;
+//Time in between each cycle (it must be > noteDuration)
+int delayValue = 1000;
+
+void setup() {
+  MIDI.begin(MIDI_CHANNEL_OFF);
+
+  //Turn OFF any hanging notes
+  MIDI.sendControlChange(123, 0, 1);
+
+  //Start i2c communication
+  Wire.begin();
+}
+
+void loop() {
+
+  //Light Sensor controls Sample Rate and interval between sensor readings (delay)
+  LDRValue = analogRead(LDRPin);
+  sampleRate = (LDRValue>>3);
+
+  //invert the reading to get the delay value
+  LDRValue = (1024-LDRValue);
+
+  //Temperature and Humidity Sensor controls Grain Size and Shift Speed
+  if (sht3x.measure()) {
+    grainSize = (sht3x.temperature()); //map -40°C to 125°C to 0-127
+    shiftSpeed = (sht3x.humidity()); //map 0-100% rH to 0-127
+  }  else {
+    grainSize = 0;
+    shiftSpeed = 64;
+  }
+
+  //digitalWrite(LED, HIGH);
+  MIDI.sendControlChange(102, sampleRate, 1);
+  MIDI.sendControlChange(106, grainSize, 1);
+  MIDI.sendControlChange(107, shiftSpeed, 1);
+
+  //wait before repeating the cycle again
+  delay(LDRValue);
+}
